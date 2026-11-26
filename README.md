@@ -1,1 +1,20 @@
 # north-pole-hotline
+
+A one-page "call Santa" app for little kids. Tap the big red phone and Santa answers by voice, powered by an ElevenLabs voice agent.
+
+## How it works
+
+- **Kids** tap the red button. The browser asks for the microphone, then Santa picks up right on the page. Tap the green button to hang up.
+- **Grown-ups** tap "Grown-ups only", solve a quick math question, and fill in Santa's report: the child's first name, a nice-list check, what they've done well, what to work on, and secret gift notes. Santa says his elves told him, never that the parents did.
+- The report is saved in the browser on that device (localStorage). Nothing is stored on a server. It is sent to ElevenLabs only as dynamic variables when a call starts.
+
+## Pieces
+
+- `index.html`: the whole app, no build step.
+- ElevenLabs agent: `agent_2401m8ck8rcfe6gtr22wvtc4ms4c` ("Santa Hotline (North Pole)"). Its prompt uses the variables `child_name`, `nice_status`, `parent_report`, `encourage`, and `gift_notes`.
+- Browser SDK: `@elevenlabs/client@1.35.0` from jsDelivr.
+- If the in-page call fails, a fallback link opens ElevenLabs' hosted talk-to page with the same variables.
+
+## Hosting
+
+Served with GitHub Pages from the `main` branch root.
