@@ -7,6 +7,7 @@ A one-page "call Santa" app for little kids. Tap the big red phone and Santa ans
 - **Kids** tap the red button. The browser asks for the microphone, then Santa picks up right on the page. Tap the green button to hang up.
 - **Grown-ups** tap "Grown-ups only", solve a quick math question, and fill in Santa's report: the child's first name, a nice-list check, what they've done well, what to work on, and secret gift notes. Santa says his elves told him, never that the parents did.
 - The report is saved in the browser on that device (localStorage). Nothing is stored on a server. It is sent to ElevenLabs only as dynamic variables when a call starts.
+- **Day and night:** the page switches to a navy night sky with a moon and stars from 5pm to 6am local time. The sun/moon button next to "Grown-ups only" flips it by hand for 12 hours. On desktop the layout goes to two columns.
 - **Calls left today** shows something like 15/20 under the dial. The page has no server to ask ElevenLabs, so it counts calls connected on that phone since local midnight. Calls from the other phone don't show up in it.
 - **Sharing between phones:** "Share report link" in the report form makes a link with the report packed into the URL hash (`#r=...`). Open it on the other phone and tap "Use this report". The hash never reaches GitHub's servers, but the link stays in whatever app you send it through. Secret gift notes are never put in the link, and importing keeps any gift notes already on the receiving phone.
 
