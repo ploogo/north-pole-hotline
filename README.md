@@ -14,7 +14,7 @@ A one-page "call Santa" app for little kids. Tap the big red phone and Santa ans
 - `index.html`: the whole app, no build step.
 - ElevenLabs agent: `agent_2401m8ck8rcfe6gtr22wvtc4ms4c` ("Santa Hotline (North Pole)"). Its prompt uses the variables `child_name`, `nice_status`, `parent_report`, `encourage`, and `gift_notes`.
 - Browser SDK: `@elevenlabs/client@1.35.0` from jsDelivr.
-- If the in-page call fails, a fallback link opens ElevenLabs' hosted talk-to page with the same variables.
+- The agent only accepts calls from `ploogo.github.io` (allowlist) and is capped at 20 calls a day. There is no fallback link to ElevenLabs' hosted talk-to page, since the allowlist blocks it.
 
 ## Hosting
 

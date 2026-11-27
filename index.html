@@ -61,7 +61,6 @@ h1{font-family:Fraunces,Georgia,serif;font-variation-settings:"SOFT" 100,"opsz" 
 @keyframes pulse{0%{transform:scale(.94);opacity:.9}100%{transform:scale(1.14);opacity:0}}
 .callLabel{font-family:Fraunces,Georgia,serif;font-variation-settings:"SOFT" 100;font-weight:800;font-size:30px;line-height:1.1;margin:22px 0 4px;color:var(--ink)}
 .hint{color:var(--soft);font-size:15px;margin:0;max-width:32ch}
-.fallback{color:var(--red2);font-weight:700;font-size:15px;min-height:44px;display:inline-flex;align-items:center}
 .foot{margin-top:30px;display:flex;flex-direction:column;align-items:center;gap:10px}
 .grown{background:var(--card);border:2px solid var(--line);color:var(--ink);font:700 15px "DM Sans",sans-serif;padding:10px 20px;border-radius:999px;min-height:44px;cursor:pointer;box-shadow:3px 3px 0 var(--line)}
 .grown:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
@@ -182,7 +181,6 @@ textarea{min-height:92px;resize:vertical}
   </button>
   <p class="callLabel" id="callLabel" aria-live="polite">Tap to call Santa</p>
   <p class="hint" id="hint">Grown-ups, allow the microphone the first time it asks.</p>
-  <a class="fallback" id="fallback" href="#" target="_blank" rel="noopener" hidden>Trouble? Open Santa's phone in a new tab</a>
 
   <div class="foot">
   <button class="grown" id="grownBtn" type="button">Grown-ups only</button>
@@ -233,7 +231,6 @@ textarea{min-height:92px;resize:vertical}
 
     <div class="row">
       <button class="btn main" type="submit">Send to Santa</button>
-      <a class="btn alt" id="test" href="#" target="_blank" rel="noopener">Test call</a>
       <button class="btn alt" type="button" id="clear">Clear</button>
     </div>
     <div class="saved" id="saved" aria-live="polite"></div>
@@ -293,12 +290,6 @@ function vars() {
   };
 }
 
-function talkURL() {
-  const p = new URLSearchParams({agent_id: AGENT});
-  Object.entries(vars()).forEach(([k, v]) => p.set('var_' + k, v));
-  return 'https://elevenlabs.io/app/talk-to?' + p.toString();
-}
-
 function when(t) {
   if (!t) return '';
   const d = new Date(t);
@@ -306,9 +297,6 @@ function when(t) {
 }
 
 function renderKid() {
-  const url = talkURL();
-  $('fallback').href = url;
-  $('test').href = url;
   const n = (state.name || '').trim();
   $('hi').textContent = n ? 'Hi ' + n + '! Santa is waiting by the phone' : 'Santa is waiting by the phone';
   $('pill').textContent = state.updated
@@ -494,7 +482,7 @@ snow.innerHTML = Array.from({length: 26}, () => {
 }).join('');
 
 /* the phone call */
-let convo = null, calling = false;
+let convo = null, calling = false, dropped = false;
 function setCall(mode) {
   const b = $('call'), l = $('callLabel'), hnt = $('hint');
   b.classList.toggle('live', mode === 'listening' || mode === 'speaking');
@@ -511,8 +499,8 @@ function setCall(mode) {
 async function startCall() {
   if (calling) { try { await convo?.endSession(); } catch (e) {} return; }
   const SDK = window.ElevenLabsClient;
-  if (!SDK || !SDK.Conversation) { $('fallback').hidden = false; $('hint').textContent = "Santa's phone didn't load. Use the link below."; return; }
-  calling = true; setCall('connecting');
+  if (!SDK || !SDK.Conversation) { $('hint').textContent = "Santa's phone didn't load. Check the internet, then reload the page."; return; }
+  calling = true; dropped = false; setCall('connecting');
   try {
     // ask for the mic up front so the permission prompt shows, then release it;
     // the SDK opens its own stream, and a leftover one keeps the mic light on after hang-up
@@ -524,15 +512,17 @@ async function startCall() {
       dynamicVariables: vars(),
       onConnect: () => setCall('listening'),
       onModeChange: ({mode}) => setCall(mode === 'speaking' ? 'speaking' : 'listening'),
-      onDisconnect: () => { calling = false; convo = null; setCall('idle'); },
-      onError: () => { $('fallback').hidden = false; }
+      onDisconnect: () => {
+        calling = false; convo = null; setCall('idle');
+        if (dropped) $('hint').textContent = 'The line went fuzzy. Tap the phone to call Santa again.';
+      },
+      onError: () => { dropped = true; }
     });
   } catch (e) {
     calling = false; convo = null; setCall('idle');
     $('hint').textContent = (e && e.name === 'NotAllowedError')
       ? 'Santa needs the microphone. Allow it in your browser settings and try again.'
-      : "Santa's line is busy. Try again, or use the link below.";
-    $('fallback').hidden = false;
+      : "Santa's line is busy right now. Try again in a little bit.";
   }
 }
 $('call').addEventListener('click', startCall);
