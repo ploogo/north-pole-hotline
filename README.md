@@ -22,3 +22,12 @@ A one-page "call Santa" app for little kids. Tap the big red phone and Santa ans
 ## Hosting
 
 Served with GitHub Pages from the `main` branch root.
+
+## Security notes
+
+- No API keys live in this repo. The agent ID is public by design; it can only start calls.
+- Agent limits: 20 calls a day, 2 at a time, no bursting, 7 minutes max per call. Calls without an Origin header are refused, and browsers on other sites are blocked by the allowlist. A determined script can still fake the Origin, so the daily cap is the real backstop.
+- Privacy: voices are not recorded, audio is deleted, and conversations are kept for 30 days.
+- Guardrails: prompt-injection detection plus sexual, violence, harassment and profanity filters, which end the call if triggered.
+- Santa's first line no longer includes the child's name, so nothing a caller supplies is spoken word for word. Names are also limited to letters, spaces, hyphens and apostrophes (20 characters).
+- The voice SDK loads with a Subresource Integrity hash. If you bump the SDK version, update the `integrity` value too, or Santa won't load.
