@@ -31,7 +31,14 @@ body{margin:0;color:var(--ink);font:17px/1.5 "DM Sans",system-ui,sans-serif;over
 .snow i{position:absolute;top:-10px;border-radius:50%;animation:fall linear infinite}
 .snow i:nth-child(3n){background:var(--red)}.snow i:nth-child(3n+1){background:var(--green2)}.snow i:nth-child(3n+2){background:var(--gold)}
 @keyframes fall{to{transform:translate3d(24px,105vh,0) rotate(180deg)}}
-@media(prefers-reduced-motion:reduce){.snow{display:none}.ring,.call.busy .dial{animation:none!important}}
+@media(prefers-reduced-motion:reduce){
+  .snow{display:none}
+  .ring,.call.busy .dial{animation:none!important}
+  .call,.call .dial{transition:none}
+  .call:active,.call.talking{transform:none}
+  /* no spin or pulse, so show a steady gold ring while ringing and while Santa talks */
+  .call.busy .ring,.call.talking .ring{opacity:1;transform:none}
+}
 main{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:22px 18px 44px;display:flex;flex-direction:column;align-items:center;text-align:center}
 .mast{display:flex;align-items:center;gap:10px;color:var(--green);font-weight:700;font-size:15px;margin:0 0 6px}
 .mast svg{width:18px;height:18px;flex:none}
@@ -107,6 +114,12 @@ textarea{min-height:92px;resize:vertical}
 .brief dl{margin:0;display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:6px 10px;font-size:15px}
 .brief dt{color:var(--soft)}.brief dd{margin:0;overflow-wrap:anywhere}
 .note{font-size:13px;color:var(--soft);margin-top:14px}
+.brief.flat{margin-top:4px;border-top:0;padding-top:0}
+.share{margin-top:22px;border-top:2px dashed var(--paper2);padding-top:16px}
+.share h3{font-family:Fraunces,Georgia,serif;margin:0 0 6px;font-size:20px;color:var(--green)}
+.share .btn{width:100%}
+.linkbox{margin-top:10px;font-size:14px}
+.warn{color:var(--red2);font-weight:700}
 </style>
 </head>
 <body>
@@ -225,12 +238,33 @@ textarea{min-height:92px;resize:vertical}
     </div>
     <div class="saved" id="saved" aria-live="polite"></div>
 
+    <div class="share">
+      <h3>Share with the other grown-up</h3>
+      <p>Saves this report, then makes a link for the other phone. The link carries the name, nice list check, praise, work-on notes, and who wrote it. Secret gift notes stay on this phone.</p>
+      <button class="btn alt" type="button" id="share">Share report link</button>
+      <input type="text" class="linkbox" id="linkbox" readonly aria-label="Report link" hidden>
+      <div class="saved" id="shareMsg" aria-live="polite"></div>
+    </div>
+
     <div class="brief">
       <h3>What Santa knows right now</h3>
       <dl id="brief"></dl>
-      <p class="note">The report stays on this phone only (nothing is sent anywhere until a call starts). Each new call uses the latest report. Santa keeps calls kind, never threatens coal, never promises specific presents, and won't ask for an address or school.</p>
+      <p class="note">The report stays on this phone unless you share a link. It goes to Santa's phone line only when a call starts. Each new call uses the latest report. Santa keeps calls kind, never threatens coal, never promises specific presents, and won't ask for an address or school.</p>
     </div>
   </form>
+</div>
+
+<!-- report arriving from a shared link -->
+<div class="sheet" id="incoming" role="dialog" aria-modal="true" aria-labelledby="inT">
+  <div class="panel">
+    <div class="top"><div><h2 id="inT">A report for Santa</h2><p id="inFrom"></p></div><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="brief flat"><dl id="inBrief"></dl></div>
+    <p class="note" id="inNote"></p>
+    <div class="row">
+      <button class="btn main" type="button" id="inUse">Use this report</button>
+      <button class="btn alt" type="button" data-close>Keep mine</button>
+    </div>
+  </div>
 </div>
 
 <script id="report" type="application/json">{}</script>
@@ -282,16 +316,19 @@ function renderKid() {
     : 'No report from the elves yet';
 }
 
-function renderBrief() {
+function briefRows(r, withGifts) {
   const rows = [
-    ['Name', state.name || 'not set, Santa says "my friend"'],
-    ['Nice list', STATUS_TEXT[state.status] || 'Nice list'],
-    ['Praise', state.good || 'nothing yet'],
-    ['Work on', state.work || 'nothing yet'],
-    ['Gift notes', state.gifts || 'none'],
-    ['Updated', state.updated ? (state.by || 'Grown-up') + ', ' + when(state.updated) : 'never']
+    ['Name', r.name || 'not set, Santa says "my friend"'],
+    ['Nice list', STATUS_TEXT[r.status] || 'Nice list'],
+    ['Praise', r.good || 'nothing yet'],
+    ['Work on', r.work || 'nothing yet']
   ];
-  const dl = $('brief');
+  if (withGifts) rows.push(['Gift notes', r.gifts || 'none']);
+  rows.push(['Updated', r.updated ? (r.by || 'Grown-up') + ', ' + when(r.updated) : 'never']);
+  return rows;
+}
+
+function fillDl(dl, rows) {
   dl.textContent = '';
   rows.forEach(([k, v]) => {
     const dt = document.createElement('dt'); dt.textContent = k;
@@ -299,6 +336,8 @@ function renderBrief() {
     dl.append(dt, dd);
   });
 }
+
+function renderBrief() { fillDl($('brief'), briefRows(state, true)); }
 
 function fillForm() {
   $('f_name').value = state.name || '';
@@ -338,8 +377,11 @@ $('pad').addEventListener('click', e => {
 $('grownBtn').addEventListener('click', () => { newQuestion(); open('gate'); });
 
 /* save */
-$('form').addEventListener('submit', e => {
-  e.preventDefault();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  renderKid(); renderBrief();
+}
+function saveForm() {
   state = {
     name: $('f_name').value.trim(),
     status: (document.querySelector('input[name=status]:checked') || {}).value || 'nice',
@@ -349,10 +391,93 @@ $('form').addEventListener('submit', e => {
     by: (document.querySelector('input[name=by]:checked') || {}).value || '',
     updated: Date.now()
   };
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
-  renderKid(); renderBrief();
-  $('saved').textContent = 'Santa got it. Saved on this phone, so make the call from here.';
+  save();
+}
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  saveForm();
+  $('saved').textContent = 'Santa got it. Saved on this phone. Use Share report link to send it to the other phone.';
 });
+
+/* share a report between phones, no server: the report rides in the URL hash.
+   The hash never reaches GitHub's servers, but the link itself sits in whatever
+   app you send it through. Gift notes are never included. */
+const STATUSES = ['nice', 'trying', 'naughty-ish'], WRITERS = ['Mom', 'Dad'];
+function b64url(str) {
+  let bin = '';
+  new TextEncoder().encode(str).forEach(c => bin += String.fromCharCode(c));
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function unb64url(s) {
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+function encodeReport(r) {
+  return b64url(JSON.stringify({v: 1, n: r.name || '', s: r.status || 'nice', g: r.good || '', w: r.work || '', b: r.by || '', u: r.updated || 0}));
+}
+function decodeReport(code) {
+  const o = JSON.parse(unb64url(code));
+  if (!o || o.v !== 1) throw new Error('unknown report');
+  const txt = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+  const u = Number(o.u);
+  return {
+    name: txt(o.n, 40),
+    status: STATUSES.includes(o.s) ? o.s : 'nice',
+    good: txt(o.g, 500),
+    work: txt(o.w, 500),
+    by: WRITERS.includes(o.b) ? o.b : '',
+    updated: Number.isFinite(u) && u > 0 ? Math.min(u, Date.now()) : Date.now()
+  };
+}
+function shareURL() {
+  return location.origin + location.pathname + '#r=' + encodeReport(state);
+}
+
+$('share').addEventListener('click', async () => {
+  saveForm();
+  const url = shareURL(), msg = $('shareMsg'), box = $('linkbox');
+  box.hidden = true; msg.textContent = '';
+  if (navigator.share) {
+    try {
+      await navigator.share({title: 'North Pole Hotline report', text: 'Santa report for ' + (state.name || 'our kiddo') + '. Open on your phone and tap Use this report.', url});
+      msg.textContent = 'Shared. Gift notes stayed on this phone.';
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    msg.textContent = 'Link copied. Paste it in a text to the other grown-up. Gift notes stayed on this phone.';
+  } catch (e) {
+    box.value = url; box.hidden = false; box.focus(); box.select();
+    msg.textContent = 'Copy this link and send it to the other grown-up.';
+  }
+});
+
+let incoming = null;
+function checkIncoming() {
+  const m = location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  // take the report out of the address bar right away
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  try { incoming = decodeReport(m[1]); } catch (e) { incoming = null; return; }
+  $('inFrom').textContent = 'From ' + (incoming.by || 'a grown-up') + '. Use it on this phone for the next call?';
+  fillDl($('inBrief'), briefRows(incoming, false));
+  const notes = ['Secret gift notes are not in links. Any gift notes already on this phone stay as they are.'];
+  if (state.updated && state.updated > incoming.updated) notes.unshift('Heads up: the report already on this phone is newer (' + when(state.updated) + ').');
+  $('inNote').textContent = notes.join(' ');
+  $('inNote').classList.toggle('warn', notes.length > 1);
+  open('incoming');
+}
+$('inUse').addEventListener('click', () => {
+  if (!incoming) return;
+  state = Object.assign({}, incoming, {gifts: state.gifts || ''});
+  incoming = null;
+  save(); closeAll();
+  $('hint').textContent = 'Report saved on this phone. Santa will use it on the next call.';
+});
+window.addEventListener('hashchange', checkIncoming);
 
 $('clear').addEventListener('click', () => {
   state = {updated: 0};
@@ -389,7 +514,10 @@ async function startCall() {
   if (!SDK || !SDK.Conversation) { $('fallback').hidden = false; $('hint').textContent = "Santa's phone didn't load. Use the link below."; return; }
   calling = true; setCall('connecting');
   try {
-    await navigator.mediaDevices.getUserMedia({audio: true});
+    // ask for the mic up front so the permission prompt shows, then release it;
+    // the SDK opens its own stream, and a leftover one keeps the mic light on after hang-up
+    const probe = await navigator.mediaDevices.getUserMedia({audio: true});
+    probe.getTracks().forEach(t => t.stop());
     convo = await SDK.Conversation.startSession({
       agentId: AGENT,
       connectionType: 'webrtc',
@@ -411,8 +539,7 @@ $('call').addEventListener('click', startCall);
 window.addEventListener('pagehide', () => { try { convo?.endSession(); } catch (e) {} });
 
 renderKid();
-
-
+checkIncoming();
 }
 </script>
 </body>
