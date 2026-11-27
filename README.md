@@ -16,7 +16,8 @@ A one-page "call Santa" app for little kids. Tap the big red phone and Santa ans
 - `index.html`: the whole app, no build step. The hand-drawn illustrations (Santa on the phone, elf, snowman, reindeer, walking telephone) were generated with Higgsfield and are embedded as WebP data URIs, so the page is still a single file. The only other files are `og.jpg` (the 1200x630 link preview) and `apple-touch-icon.png` (home-screen icon), because link previews and iOS need real image URLs. The tab favicon is embedded in the page.
 - ElevenLabs agent: `agent_2401m8ck8rcfe6gtr22wvtc4ms4c` ("Santa Hotline (North Pole)"). Its prompt uses the variables `child_name`, `nice_status`, `parent_report`, `encourage`, and `gift_notes`.
 - Browser SDK: `@elevenlabs/client@1.35.0` from jsDelivr.
-- The agent only accepts calls from `ploogo.github.io` (allowlist) and is capped at 20 calls a day. There is no fallback link to ElevenLabs' hosted talk-to page, since the allowlist blocks it.
+- The agent's origin allowlist blocks browsers on other websites from calling it. It does not stop scripts, which can fake or skip the Origin header, so the real limit is the agent's server-side cap of 20 calls a day. There is no fallback link to ElevenLabs' hosted talk-to page, since the allowlist blocks it.
+- The grown-ups math question and the calls-left counter only run in the browser. They keep a 4-year-old out and give a rough count; they are not security.
 
 ## Hosting
 
