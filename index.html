@@ -46,21 +46,26 @@ h1{font-family:Grandstander,"DM Sans",sans-serif;font-weight:900;font-size:clamp
 .hi{font:700 20px/1.25 Grandstander,"DM Sans",sans-serif;color:var(--ink);margin:12px 0 4px;text-wrap:balance}
 .hero{width:min(88vw,340px);margin:4px 0 -6px}
 /* rotary dial button */
-.call{position:relative;z-index:2;display:grid;place-items:center;width:min(58vw,212px);aspect-ratio:1;margin-top:6px;border:0;padding:0;border-radius:50%;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s}
-.call .dial{width:100%;height:100%;display:block;transition:transform .2s}
+.call{position:relative;z-index:2;isolation:isolate;display:grid;place-items:center;width:min(68vw,256px);aspect-ratio:1;margin-top:calc(-1 * min(17vw,66px));border:0;padding:0;border-radius:50%;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s}
+.call .dial{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 0 var(--ink));transition:transform .2s,filter .15s}
+/* soft blush glow pulsing behind the dial while it waits to be tapped */
+.call::before{content:"";position:absolute;inset:-22px;border-radius:50%;background:var(--tint);border:2.5px dashed var(--red);z-index:-1;animation:halo 2.2s ease-in-out infinite}
+.call.live::before,.call.busy::before{opacity:0;animation:none}
+@keyframes halo{0%,100%{transform:scale(.94);opacity:.7}50%{transform:scale(1.05);opacity:1}}
 .call .dial .face{fill:var(--dial);transition:fill .2s}
-.call:active{transform:translateY(4px) rotate(-3deg)}
-.call:focus-visible{outline:4px dashed var(--red);outline-offset:8px}
+.call:active{transform:translateY(6px)}
+.call:active .dial{filter:drop-shadow(0 2px 0 var(--ink))}
+.call:focus-visible{outline:4px solid var(--ink);outline-offset:30px}
 .call.live{--dial:var(--ink)}
 .call.talking .dial{transform:scale(1.04)}
 .call.busy{cursor:progress}
 .call.busy .dial{animation:spin 1.6s cubic-bezier(.5,0,.3,1) infinite}
 @keyframes spin{0%{transform:rotate(0)}45%{transform:rotate(-70deg)}100%{transform:rotate(0)}}
 /* little ink "ring ring" lines around the dial */
-.buzz{position:absolute;inset:-26px;width:calc(100% + 52px);height:calc(100% + 52px);pointer-events:none;opacity:0;color:var(--ink)}
+.buzz{position:absolute;inset:-30px;width:calc(100% + 60px);height:calc(100% + 60px);pointer-events:none;opacity:0;color:var(--ink)}
 .call.busy .buzz,.call.talking .buzz{opacity:1;animation:buzz .5s steps(2) infinite}
 @keyframes buzz{0%{transform:rotate(-4deg) scale(1)}100%{transform:rotate(4deg) scale(1.04)}}
-.callLabel{font:900 30px/1.1 Grandstander,"DM Sans",sans-serif;margin:20px 0 4px;color:var(--ink)}
+.callLabel{font:900 32px/1.1 Grandstander,"DM Sans",sans-serif;margin:34px 0 4px;color:var(--ink)}
 .hint{color:var(--soft);font-size:15px;margin:0;max-width:32ch}
 .calls{display:inline-flex;align-items:center;gap:8px;margin:16px 0 0;padding:6px 16px 6px 12px;min-height:40px;border:2px solid var(--line);border-radius:999px;background:var(--card);font-size:15px;color:var(--ink)}
 .calls svg{width:20px;height:20px;flex:none;color:var(--red)}
@@ -129,7 +134,7 @@ textarea{min-height:92px;resize:vertical}
 @media(min-width:560px){.stk{max-width:120px}.peek img{width:170px}}
 @media(prefers-reduced-motion:reduce){
   .snow{display:none}
-  .stk,.call.busy .dial,.call.busy .buzz,.call.talking .buzz{animation:none!important}
+  .stk,.call::before,.call.busy .dial,.call.busy .buzz,.call.talking .buzz{animation:none!important}
   .call,.call .dial,.call .dial .face{transition:none}
   .call:active,.call.talking .dial,.grown:active,.btn:active,.pad button:active{transform:none}
 }
