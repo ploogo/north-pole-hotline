@@ -13,7 +13,7 @@ A one-page "call Santa" app for little kids. Tap the big red phone and Santa ans
 
 ## Pieces
 
-- `index.html`: the whole app, no build step. The hand-drawn illustrations (Santa on the phone, elf, snowman, reindeer, walking telephone) were generated with Higgsfield and are embedded as WebP data URIs, so the page is still a single file.
+- `index.html`: the whole app, no build step. The hand-drawn illustrations (Santa on the phone, elf, snowman, reindeer, walking telephone) were generated with Higgsfield and are embedded as WebP data URIs, so the page is still a single file. The only other files are `og.jpg` (the 1200x630 link preview) and `apple-touch-icon.png` (home-screen icon), because link previews and iOS need real image URLs. The tab favicon is embedded in the page.
 - ElevenLabs agent: `agent_2401m8ck8rcfe6gtr22wvtc4ms4c` ("Santa Hotline (North Pole)"). Its prompt uses the variables `child_name`, `nice_status`, `parent_report`, `encourage`, and `gift_notes`.
 - Browser SDK: `@elevenlabs/client@1.35.0` from jsDelivr.
 - The agent only accepts calls from `ploogo.github.io` (allowlist) and is capped at 20 calls a day. There is no fallback link to ElevenLabs' hosted talk-to page, since the allowlist blocks it.
